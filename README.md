@@ -46,9 +46,9 @@ This folder contains scripts for splitting and sampling images and labels into r
 
 ### **3. Model Training Code**  
 Contains scripts for training models, including YOLO, Faster R-CNN, and RetinaNet. Each folder includes:
-- Training configurations (`config.yaml`)  
-- SLURM job submission scripts  
-- Preprocessing and evaluation utilities  
+- Custom configuration files specific to each architecture (e.g., `yolov11.yaml`, `faster_rcnn.yaml`, `retinanet.yaml`).
+- SLURM job submission scripts.
+- Preprocessing and evaluation utilities.
 
 ---
 
@@ -58,7 +58,7 @@ Below is an example of the folder structure for data splits and the organization
 
 ```
 Data/
-├── Yolo11_2/
+├── Yolo11/
 │   ├── 0%/
 │   │   ├── Train/
 │   │   │   ├── images/
@@ -117,11 +117,11 @@ Data/
 
 3. **Train Models**:  
    - Navigate to `Model Training Code`.  
-   - Update paths in `config.yaml` to point to the dataset directories.  
+   - Update paths in the respective `.yaml` files for each architecture (e.g., `yolov11.yaml`, `faster_rcnn.yaml`, `retinanet.yaml`).
    - Run training scripts using the provided SLURM submission files.  
 
 4. **Evaluate Models**:  
-   - Use the evaluation scripts in each model folder to calculate mAP@0.5.  
+   - Use the test scripts in each model folder to get predictions.  
    - Submit test set predictions to [MACVi](https://macvi.org) for benchmarking.  
 
 ---
@@ -134,17 +134,40 @@ Implemented using the [Ultralytics YOLOv11 pipeline](https://docs.ultralytics.co
 - Real-time object detection with high speed.  
 - Extensive support for large-scale datasets.  
 
+**Example Configuration (`yolov11.yaml`)**:
+```yaml
+train: /path/to/train/images
+val: /path/to/val/images
+nc: 5  # number of classes
+names: ['class1', 'class2', 'class3', 'class4', 'class5']
+```
+
 ### **2. Faster R-CNN**  
 Based on the [Faster R-CNN PyTorch Training Pipeline](https://github.com/sovit-123/fasterrcnn-pytorch-training-pipeline).  
 **Features**:
 - Region Proposal Network for high accuracy.  
 - Enhanced support for saving/reloading weights.  
 
+**Example Configuration (`faster_rcnn.yaml`)**:
+```yaml
+train: /path/to/train/images
+val: /path/to/val/images
+num_classes: 6  # 5 object classes + background
+```
+
 ### **3. RetinaNet**  
 Utilizes the [RetinaNet Detection Pipeline](https://github.com/sovit-123/retinanet_detection_pipeline).  
 **Features**:
 - Focal loss for handling class imbalance.  
 - Multi-scale feature analysis with FPN architecture.  
+
+**Example Configuration (`retinanet.yaml`)**:
+```yaml
+train: /path/to/train/images
+val: /path/to/val/images
+num_classes: 5
+anchor_sizes: [32, 64, 128, 256, 512]
+```
 
 ---
 
@@ -159,7 +182,7 @@ Utilizes the [RetinaNet Detection Pipeline](https://github.com/sovit-123/retinan
 #SBATCH --gres=gpu:1
 #SBATCH --time=24:00:00
 
-python train.py --data data.yaml --epochs 300 --img-size 640
+python train.py --data yolov11.yaml --epochs 300 --img-size 640
 ```
 
 ---
