@@ -13,88 +13,6 @@ This repository provides all the necessary resources for processing datasets, tr
 The project is designed for researchers utilizing the JARVIS HPC cluster but can be adapted for any SLURM-managed server or HPC environment.
 
 ---
-## Project Structure
-
-### **1. Data Preparation**  
-This folder contains scripts for preparing and converting datasets:
-- **`parse_json.py`**: Converts annotations in JSON format to VOC XML or YOLO TXT formats as required by different models.
-- **Steps**:
-  1. Download the real dataset (SeaDroneSee) and synthetic dataset (SyntheticSeaDroneSee) from [MACVi](https://macvi.org/dataset).
-  2. Place the downloaded files into the `Data` directory.
-  3. Run `parse_json.py` to convert JSON labels to the required format. Example:
-     ```bash
-     python parse_json.py --input-dir /path/to/json --output-dir /path/to/converted
-     ```
-
-### **2. Data Splitting and Sampling**  
-This folder contains scripts for splitting and sampling images and labels into respective data splits:
-- **`Train_div.py`**: Handles the creation of `0%`, `25%`, `50%`, `75%`, and `100%` data splits by sampling real and synthetic data.
-  - Example SLURM job submission:
-    ```bash
-    sbatch file_div.sh
-    ```
-- **`Train_div2.py`**: Handles the creation of `+25k`, `+50k`, and `+90k` data splits, adding specific amounts of synthetic data to all available real data.
-  - Example SLURM job submission:
-    ```bash
-    sbatch run_train_div.sh
-    ```
-- **`count.sh`**: Counts files with and without underscores in filenames within a specific directory for validation purposes.
-  - Example:
-    ```bash
-    bash count.sh
-    ```
-
-### **3. Model Training Code**  
-Contains scripts for training models, including YOLO, Faster R-CNN, and RetinaNet. Each folder includes:
-- Custom configuration files specific to each architecture (e.g., `yolov11.yaml`, `faster_rcnn.yaml`, `retinanet.yaml`).
-- SLURM job submission scripts.
-- Preprocessing and evaluation utilities.
-
----
-
-## Example Folder Structure
-
-Below is an example of the folder structure for data splits and the organization of images and labels:
-
-```
-Data/
-├── Yolo11/
-│   ├── 0%/
-│   │   ├── Train/
-│   │   │   ├── images/
-│   │   │   │   ├── image1.png
-│   │   │   │   ├── image2.png
-│   │   │   │   └── ...
-│   │   │   ├── labels/
-│   │   │   │   ├── image1.txt
-│   │   │   │   ├── image2.txt
-│   │   │   │   └── ...
-│   │   ├── Valid/
-│   │       ├── images/
-│   │       │   ├── image1.png
-│   │       │   ├── image2.png
-│   │       │   └── ...
-│   │       ├── labels/
-│   │           ├── image1.txt
-│   │           ├── image2.txt
-│   │           └── ...
-│   ├── 25%/
-│   │   └── ... (same structure as 0%)
-│   ├── 50%/
-│   │   └── ...
-│   ├── 75%/
-│   │   └── ...
-│   ├── 100%/
-│       └── ...
-│   ├── +25k/
-│       └── ...
-│   ├── +50k/
-│       └── ...
-│   ├── +90k/
-│       └── ...
-```
-
----
 
 ## Getting Started
 
@@ -103,90 +21,388 @@ Data/
 - **SLURM-Managed Server**: Recommended for large-scale model training.  
 - **Dependencies**: Install using `pip install -r requirements.txt`.  
 
-### **Steps**  
+## Data Download
 
-1. **Download and Prepare Datasets**:  
-   - Download SeaDroneSee from [MACVi](https://macvi.org/dataset).  
-   - Download SyntheticSeaDroneSee.  
-   - Convert JSON annotations using `parse_json.py`.
+### **Datasets**
 
-2. **Split and Sample Data**:  
-   - Use `Train_div.py` for standard splits (`0%`, `25%`, etc.).
-   - Use `Train_div2.py` for extended splits (`+25k`, `+50k`, etc.).
-   - Submit jobs using `file_div.sh` and `run_train_div.sh` as required.  
+#### **1. Synthetic Sea Drones Dataset**
+- Download from [MACVi Dataset Page](https://macvi.org/dataset).
+- Contains both compressed and uncompressed versions, and only Train and Valid splits.
+- Folder structure:
+```
+Synthetic Sea Drones/
+├── Compressed/
+│   ├── Train/
+│   │   ├── images/
+│   │   ├── labels/
+│   ├── Valid/
+│       ├── images/
+│       ├── labels/
+├── Uncompressed/
+    ├── Train/
+    │   ├── images/
+    │   ├── labels/
+    ├── Valid/
+        ├── images/
+        ├── labels/
+```
 
-3. **Train Models**:  
-   - Navigate to `Model Training Code`.  
-   - Update paths in the respective `.yaml` files for each architecture (e.g., `yolov11.yaml`, `faster_rcnn.yaml`, `retinanet.yaml`).
-   - Run training scripts using the provided SLURM submission files.  
-
-4. **Evaluate Models**:  
-   - Use the test scripts in each model folder to get predictions.  
-   - Submit test set predictions to [MACVi](https://macvi.org) for benchmarking.  
+#### **2. SeaDronesSee Object Detection v2 Dataset (Real)**
+- Download from [MACVi Dataset Page](https://macvi.org/dataset).
+- Contains both compressed and uncompressed versions for all splits (Train, Valid, Test).
+- Annotation files are stored outside the data folders in a separate `annotations/` directory.
+- Folder structure:
+```
+SeaDronesSee Object Detection v2/
+├── Compressed/
+│   ├── Train/
+│   │   ├── images/
+│   ├── Valid/
+│   │   ├── images/
+│   ├── Test/
+│       ├── images/
+├── Uncompressed/
+│   ├── Train/
+│   │   ├── images/
+│   ├── Valid/
+│   │   ├── images/
+│   ├── Test/
+│       ├── images/
+├── Annotations/
+    ├── instances_train.json
+    ├── instances_valid.json
+    ├── instances_test.json
+```
 
 ---
 
-## Supported Architectures
+## Data Preparation
 
-### **1. YOLO**  
-Implemented using the [Ultralytics YOLOv11 pipeline](https://docs.ultralytics.com/).  
+### **1. File Conversion (File Div Folder)**
 
-
-**Example Configuration (`yolov11.yaml`)**:
-```yaml
-train: /path/to/train/images
-val: /path/to/val/images
-nc: 5  # number of classes
-names: ['class1', 'class2', 'class3', 'class4', 'class5']
+#### **parse_json.py**
+- Converts annotations from JSON format to VOC XML or YOLO TXT formats.
+- Usage:
+```bash
+python parse_json.py --input-dir /path/to/json --output-dir /path/to/converted
+```
+- Example Output Directory after Conversion:
+```
+SeaDronesSee Object Detection v2/
+├── Train/
+│   ├── images/
+│   ├── labels/
+├── Valid/
+│   ├── images/
+│   ├── labels/
+├── Test/
+    ├── images/
+    ├── labels/
 ```
 
-### **2. Faster R-CNN**  
-Based on the [Faster R-CNN PyTorch Training Pipeline](https://github.com/sovit-123/fasterrcnn-pytorch-training-pipeline).  
+### **2. Data Splitting**
+
+#### **Train_div.py**
+- Splits datasets into predefined proportions (`0%`, `25%`, `50%`, `75%`, `100%`).
+- Example SLURM submission:
+```bash
+sbatch file_div.sh
+```
+
+#### **Train_div2.py**
+- Adds synthetic data in increments (`+25k`, `+50k`, `+90k`) to the training set.
+- Example SLURM submission:
+```bash
+sbatch run_train_div.sh
+```
+
+### **Example Output Directory for YOLO11**
+```
+Data/Yolo11/
+├── 0%/
+│   ├── Train/
+│   │   ├── images/
+│   │   │   ├── image1.png
+│   │   │   ├── image2.png
+│   │   │   └── ...
+│   │   ├── labels/
+│   │       ├── image1.txt
+│   │       ├── image2.txt
+│   │       └── ...
+│   ├── Valid/
+│       ├── images/
+│       │   ├── image1.png
+│       │   ├── image2.png
+│       │   └── ...
+│       ├── labels/
+│           ├── image1.txt
+│           ├── image2.txt
+│           └── ...
+│   ├── data.yaml
+├── 25%/
+│   └── ... (same structure as 0%)
+├── 50%/
+│   └── ...
+├── 75%/
+│   └── ...
+├── 100%/
+│   └── ...
+├── +25k/
+│   └── ...
+├── +50k/
+│   └── ...
+├── +90k/
+    └── ...
+```
+
+---
+
+## Model Training
+---
+
+### **Mass Editing Scripts**
+
+#### **Overview**
+Mass editing scripts allow for efficient and uniform modifications across multiple training, validation, and test files for different dataset splits. This ensures consistency and saves time when adjusting parameters or configurations.
+
+#### **Examples of Mass Editing Scripts**
+
+**YOLO11 mass file edits**
+- `edit_yolo11_script.py`: Modify all training scripts.
+- `edit_yolo11_script_schedule.py`: Modify all training scheduler script.
+- `edit_yolo11_script_test.py`: Modify testing scripts.
+- `edit_yolo11_script_val.py`: Modify validation scripts.  
+
+
+**Faster R-CNN mass file edits**
+- `edit_all_train.py`: Modify all training scripts.
+- `edit_all_val.py`: Modify validation scripts.
+- `edit_all_test.py`: Modify testing scripts.
+- `edit_all_resume.py`: Modify resume training scripts.
+
+**RetinaNet mass file edits**
+- `reconfigure_training_files.py`: Modify all training scripts.
+- `reconfigure_val_files.py`:  Modify validation scripts.
+- `reconfigure_test_files.py`: Modify testing scripts.
+- `reconfigure_resume_files.py`:  Modify resume training scripts.
+- `reconfigure_config_files.py`:  Modify config files.
+
+#### **Usage**
+To execute a mass editing script, simply edit the template inside the script and run the file.
+
+```bash
+python edit_all_train.py 
+```
+
+This will apply the specified changes across all relevant files, for the base dir, and folders specified.
+
+
+
+---
+### **YOLOv11**
+Implemented using the [Ultralytics YOLOv11 pipeline](https://docs.ultralytics.com/).  
+
+#### **Configuration Example (`data.yaml`) for Faster R-CNN** for YOLOv11**
+```yaml
+train: ../Train/images
+val: ../Valid/images
+test: /base_path/Data/SeaDronesSee Object Detection v2/Uncompressed Version/Test
+
+nc: 5
+names: ['0', '1', '2', '3', '4']
+```
+
+#### **Training Steps**
+
+##### Individual Job Submission
+- To train the YOLOv11 model for a single split, navigate to the respective folder and run:
+```bash
+sbatch schedule_yolo.sh
+```
+
+##### Batch Job Submission
+- To batch-submit jobs for all splits, use the provided batch scripts:
+  - Training:
+  ```bash
+  bash start_all.sh
+  ```
+  - Validation:
+  ```bash
+  bash start_all_val.sh
+  ```
+  - Testing:
+  ```bash
+  bash start_all_test.sh
+  ```
+
+#### **Results Conversion**
+Convert YOLO predictions to COCO JSON format for submission:
+```bash
+python yolo_to_json.py --path /path/to/outputs --output results.json
+```
+---
+### **Faster R-CNN**
 **Changes**:
 - Changed weight loading mechanism 
 - Changed prediction file outputs
-**Example Configuration (`faster_rcnn.yaml`)**:
-```yaml
-train: /path/to/train/images
-val: /path/to/val/images
-num_classes: 6  # 5 object classes + background
+
+#### **Annotations Conversion**
+- Convert YOLO TXT labels to VOC XML format compatible with Faster R-CNN.
+- Script: `convert_parallel.py` located in `Faster_RCNN/Yolo_to_VOC`.
+- SLURM submission:
+```bash
+sbatch schedule.sh
+```
+- Output:
+  - A new `annotations/` folder is added to each split in `Faster-RCNN/`.
+  - Folder structure:
+```
+Data/Faster-RCNN/
+├── 0%/
+│   ├── Train/
+│   │   ├── images/
+│   │   ├── annotations/
+│   │   ├── data_configs/
+│   │       ├── data.yaml
+│   ├── Valid/
+│       ├── images/
+│       ├── annotations/
+│       ├── data_configs/
+│           ├── data.yaml
+├── 25%/
+│   └── ...
+├── 50%/
+│   └── ...
+├── 75%/
+│   └── ...
+├── 100%/
+│   └── ...
+├── +25k/
+│   └── ...
+├── +50k/
+│   └── ...
+├── +90k/
+    └── ...
 ```
 
-### **3. RetinaNet**  
+#### **Configuration Example (`data.yaml`) for YOLOv11 and Faster R-CNN**
+```yaml
+CLASSES:
+- __background__
+- '1'
+- '2'
+- '3'
+- '4'
+- '5'
+NC: 6
+SAVE_VALID_PREDICTION_IMAGES: false
+TRAIN_DIR_IMAGES: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Train/images
+TRAIN_DIR_LABELS: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Train/annotations
+VALID_DIR_IMAGES: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Valid/images
+VALID_DIR_LABELS: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Valid/annotations
+```
+#### **Training Steps**
+
+##### Individual Job Submission
+- Navigate to the respective folder and run:
+  ```bash
+  sbatch Train_RCNN.sh
+  ```
+- Similarly, validation and testing can be submitted with:
+  ```bash
+  sbatch Val_RCNN.sh
+  sbatch Test_RCNN.sh
+  ```
+
+##### Batch Job Submission
+- Use the provided batch scripts to submit jobs for all splits:
+  - Training:
+    ```bash
+    bash run_all_train.sh
+    ```
+  - Validation:
+    ```bash
+    bash run_all_val.sh
+    ```
+  - Testing:
+    ```bash
+    bash resume_all.sh
+    ```
+
+##### Example Configuration (`data.yaml`)
+```yaml
+train: ../Train/images
+val: ../Valid/images
+annotations: ../Train/annotations
+num_classes: 5
+save_predictions: true
+```
+
+##### Example SLURM Script (`Train_RCNN.sh`)
+```bash
+#!/bin/bash
+#SBATCH --job-name=faster_rcnn_train
+#SBATCH --output=logs/train_%j.out
+#SBATCH --error=logs/train_%j.err
+#SBATCH --partition=gpu-l40s
+#SBATCH --gres=gpu:1
+#SBATCH --time=24:00:00
+
+python train.py --data data.yaml
+```
+---
+### **RetinaNet**
 Based on the [RetinaNet Detection Pipeline](https://github.com/sovit-123/retinanet_detection_pipeline).  
 **Changes**:
 - Changed weight loading mechanism 
 - Changed prediction file outputs
-**Example Configuration (`retinanet.yaml`)**:
-```yaml
-train: /path/to/train/images
-val: /path/to/val/images
-num_classes: 5
-anchor_sizes: [32, 64, 128, 256, 512]
+
+#### **Annotations and Configuration**
+- RetinaNet uses the same VOC XML annotations as Faster R-CNN.
+- Each split contains a `config.py` file specifying training parameters.
+- Example `config.py`:
+```python
+import torch
+
+BATCH_SIZE = 8
+RESIZE_TO = 640
+NUM_EPOCHS = 300
+NUM_WORKERS = 4
+LR = 0.00001
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+TRAIN_IMG = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Train/images'
+TRAIN_ANNOT = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Train/annotations'
+VALID_IMG = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Valid/images'
+VALID_ANNOT = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Valid/annotations'
+CLASSES = ['__background__', '1', '2', '3', '4', '5']
+NUM_CLASSES = len(CLASSES)
 ```
 
----
+#### **Training Steps**
 
-## Example SLURM Job Script
-
+##### Individual Job Submission
+- Navigate to the respective folder and run:
 ```bash
-#!/bin/bash
-#SBATCH --job-name=train_yolo
-#SBATCH --output=logs/yolo_train.out
-#SBATCH --error=logs/yolo_train.err
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
-
-python train.py --data yolov11.yaml --epochs 300 --img-size 640
+sbatch Train_Retina.sh
 ```
 
----
+##### Batch Job Submission
+- Use the provided batch scripts to submit jobs for all splits:
+  - Training:
+    ```bash
+    bash run_all_retinanet_models.sh
+    ```
+  - Validation:
+    ```bash
+    bash run_all_val_retinanet_models.sh
+    ```
+  - Testing:
+    ```bash
+    bash run_all_test_retinanet_models.sh
+    ```
 
-## References
-
-1. Faster R-CNN Training Pipeline: [GitHub](https://github.com/sovit-123/fasterrcnn-pytorch-training-pipeline)  
-2. YOLO Documentation: [Ultralytics](https://docs.ultralytics.com/)  
-3. RetinaNet Detection Pipeline: [GitHub](https://github.com/sovit-123/retinanet_detection_pipeline)  
-
----
+#### **Results Conversion**
+Convert RetinaNet predictions to COCO JSON format for submission:
+```bash
+python yolo_to_json.py --path /path/to/outputs --output results.json
+```

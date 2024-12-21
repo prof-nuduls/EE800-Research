@@ -1,2 +1,0 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-python -m torch.distributed.launch --nproc_per_node=2 --use_env train.py --data /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/data_configs --epochs 30 --model fasterrcnn_resnet50_fpn --name Faster_RCNN --batch 16

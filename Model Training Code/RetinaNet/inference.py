@@ -1,179 +1,353 @@
-import numpy as np
-import cv2
+# EE800-Research
+**Derick Miller**  
+**Dept. of Electrical and Computer Engineering**  
+**Stevens Institute of Technology**  
+**EE800 Final Project**  
+
+---
+
+## Synthetic Data and Object Detection for Maritime Search and Rescue
+
+This repository provides all the necessary resources for processing datasets, training object detection models, and evaluating their performance for maritime search and rescue (SAR) applications. By integrating synthetic data, this project aims to address the scarcity of high-quality real-world training data, enabling improved accuracy and robustness of object detection models.
+
+The project is designed for researchers utilizing the JARVIS HPC cluster but can be adapted for any SLURM-managed server or HPC environment.
+
+---
+
+## Data Download
+
+### **Datasets**
+
+#### **1. Synthetic Sea Drones Dataset**
+- Download from [MACVi Dataset Page](https://macvi.org/dataset).
+- Contains both compressed and uncompressed versions, and only Train and Valid splits.
+- Folder structure:
+```
+Synthetic Sea Drones/
+├── Compressed/
+│   ├── Train/
+│   │   ├── images/
+│   │   ├── labels/
+│   ├── Valid/
+│       ├── images/
+│       ├── labels/
+├── Uncompressed/
+    ├── Train/
+    │   ├── images/
+    │   ├── labels/
+    ├── Valid/
+        ├── images/
+        ├── labels/
+```
+
+#### **2. SeaDronesSee Object Detection v2 Dataset (Real)**
+- Download from [MACVi Dataset Page](https://macvi.org/dataset).
+- Contains both compressed and uncompressed versions for all splits (Train, Valid, Test).
+- Annotation files are stored outside the data folders in a separate `annotations/` directory.
+- Folder structure:
+```
+SeaDronesSee Object Detection v2/
+├── Compressed/
+│   ├── Train/
+│   │   ├── images/
+│   ├── Valid/
+│   │   ├── images/
+│   ├── Test/
+│       ├── images/
+├── Uncompressed/
+│   ├── Train/
+│   │   ├── images/
+│   ├── Valid/
+│   │   ├── images/
+│   ├── Test/
+│       ├── images/
+├── Annotations/
+    ├── instances_train.json
+    ├── instances_valid.json
+    ├── instances_test.json
+```
+
+---
+
+## Data Preparation
+
+### **1. File Conversion (File Div Folder)**
+
+#### **parse_json.py**
+- Converts annotations from JSON format to VOC XML or YOLO TXT formats.
+- Usage:
+```bash
+python parse_json.py --input-dir /path/to/json --output-dir /path/to/converted
+```
+- Example Output Directory after Conversion:
+```
+SeaDronesSee Object Detection v2/
+├── Train/
+│   ├── images/
+│   ├── labels/
+├── Valid/
+│   ├── images/
+│   ├── labels/
+├── Test/
+    ├── images/
+    ├── labels/
+```
+
+### **2. Data Splitting**
+
+#### **Train_div.py**
+- Splits datasets into predefined proportions (`0%`, `25%`, `50%`, `75%`, `100%`).
+- Example SLURM submission:
+```bash
+sbatch file_div.sh
+```
+
+#### **Train_div2.py**
+- Adds synthetic data in increments (`+25k`, `+50k`, `+90k`) to the training set.
+- Example SLURM submission:
+```bash
+sbatch run_train_div.sh
+```
+
+### **Example Output Directory for YOLO11**
+```
+Data/Yolo11/
+├── 0%/
+│   ├── Train/
+│   │   ├── images/
+│   │   │   ├── image1.png
+│   │   │   ├── image2.png
+│   │   │   └── ...
+│   │   ├── labels/
+│   │       ├── image1.txt
+│   │       ├── image2.txt
+│   │       └── ...
+│   ├── Valid/
+│       ├── images/
+│       │   ├── image1.png
+│       │   ├── image2.png
+│       │   └── ...
+│       ├── labels/
+│           ├── image1.txt
+│           ├── image2.txt
+│           └── ...
+│   ├── data.yaml
+├── 25%/
+│   └── ... (same structure as 0%)
+├── 50%/
+│   └── ...
+├── 75%/
+│   └── ...
+├── 100%/
+│   └── ...
+├── +25k/
+│   └── ...
+├── +50k/
+│   └── ...
+├── +90k/
+    └── ...
+```
+
+---
+
+## Model Training
+
+### **YOLOv11**
+
+#### **Configuration Example (`data.yaml`) for Faster R-CNN** for YOLOv11**
+```yaml
+train: ../Train/images
+val: ../Valid/images
+test: /base_path/Data/SeaDronesSee Object Detection v2/Uncompressed Version/Test
+
+nc: 5
+names: ['0', '1', '2', '3', '4']
+```
+
+#### **Training Steps**
+
+##### Individual Job Submission
+- To train the YOLOv11 model for a single split, navigate to the respective folder and run:
+```bash
+sbatch schedule_yolo.sh
+```
+
+##### Batch Job Submission
+- To batch-submit jobs for all splits, use the provided batch scripts:
+  - Training:
+  ```bash
+  bash start_all.sh
+  ```
+  - Validation:
+  ```bash
+  bash start_all_val.sh
+  ```
+  - Testing:
+  ```bash
+  bash start_all_test.sh
+  ```
+
+#### **Results Conversion**
+Convert YOLO predictions to COCO JSON format for submission:
+```bash
+python yolo_to_json.py --path /path/to/outputs --output results.json
+```
+
+### **Faster R-CNN**
+
+#### **Annotations Conversion**
+- Convert YOLO TXT labels to VOC XML format compatible with Faster R-CNN.
+- Script: `convert_parallel.py` located in `Faster_RCNN/Yolo_to_VOC`.
+- SLURM submission:
+```bash
+sbatch schedule.sh
+```
+- Output:
+  - A new `annotations/` folder is added to each split in `Faster-RCNN/`.
+  - Folder structure:
+```
+Data/Faster-RCNN/
+├── 0%/
+│   ├── Train/
+│   │   ├── images/
+│   │   ├── annotations/
+│   │   ├── data_configs/
+│   │       ├── data.yaml
+│   ├── Valid/
+│       ├── images/
+│       ├── annotations/
+│       ├── data_configs/
+│           ├── data.yaml
+├── 25%/
+│   └── ...
+├── 50%/
+│   └── ...
+├── 75%/
+│   └── ...
+├── 100%/
+│   └── ...
+├── +25k/
+│   └── ...
+├── +50k/
+│   └── ...
+├── +90k/
+    └── ...
+```
+
+#### **Configuration Example (`data.yaml`) for YOLOv11 and Faster R-CNN**
+```yaml
+CLASSES:
+- __background__
+- '1'
+- '2'
+- '3'
+- '4'
+- '5'
+NC: 6
+SAVE_VALID_PREDICTION_IMAGES: false
+TRAIN_DIR_IMAGES: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Train/images
+TRAIN_DIR_LABELS: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Train/annotations
+VALID_DIR_IMAGES: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Valid/images
+VALID_DIR_LABELS: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Valid/annotations
+```
+#### **Training Steps**
+
+##### Individual Job Submission
+- Navigate to the respective folder and run:
+  ```bash
+  sbatch Train_RCNN.sh
+  ```
+- Similarly, validation and testing can be submitted with:
+  ```bash
+  sbatch Val_RCNN.sh
+  sbatch Test_RCNN.sh
+  ```
+
+##### Batch Job Submission
+- Use the provided batch scripts to submit jobs for all splits:
+  - Training:
+    ```bash
+    bash run_all_train.sh
+    ```
+  - Validation:
+    ```bash
+    bash run_all_val.sh
+    ```
+  - Testing:
+    ```bash
+    bash resume_all.sh
+    ```
+
+##### Example Configuration (`data.yaml`)
+```yaml
+train: ../Train/images
+val: ../Valid/images
+annotations: ../Train/annotations
+num_classes: 5
+save_predictions: true
+```
+
+##### Example SLURM Script (`Train_RCNN.sh`)
+```bash
+#!/bin/bash
+#SBATCH --job-name=faster_rcnn_train
+#SBATCH --output=logs/train_%j.out
+#SBATCH --error=logs/train_%j.err
+#SBATCH --partition=gpu-l40s
+#SBATCH --gres=gpu:1
+#SBATCH --time=24:00:00
+
+python train.py --data data.yaml
+```
+
+### **RetinaNet**
+
+#### **Annotations and Configuration**
+- RetinaNet uses the same VOC XML annotations as Faster R-CNN.
+- Each split contains a `config.py` file specifying training parameters.
+- Example `config.py`:
+```python
 import torch
-import glob as glob
-import os
-import time
-import argparse
 
-from model import create_model
-from torchvision import transforms as transforms
-from config import (
-    NUM_CLASSES, DEVICE, CLASSES
-)
-from utils.annotations import inference_annotations
+BATCH_SIZE = 8
+RESIZE_TO = 640
+NUM_EPOCHS = 300
+NUM_WORKERS = 4
+LR = 0.00001
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+TRAIN_IMG = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Train/images'
+TRAIN_ANNOT = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Train/annotations'
+VALID_IMG = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Valid/images'
+VALID_ANNOT = '/mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/{folder}/Valid/annotations'
+CLASSES = ['__background__', '1', '2', '3', '4', '5']
+NUM_CLASSES = len(CLASSES)
+```
 
-np.random.seed(42)
+#### **Training Steps**
 
-# Construct the argument parser.
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '--weights',
-    default='outputs/best_model.pth',
-    help='path to the model weights'
-)
-parser.add_argument(
-    '-i', '--input', 
-    help='path to input image directory or a single image',
-    required=True
-)
-parser.add_argument(
-    '--imgsz', 
-    default=None,
-    type=int,
-    help='image resize shape'
-)
-parser.add_argument(
-    '--threshold',
-    default=0.25,
-    type=float,
-    help='detection threshold'
-)
-parser.add_argument(
-    '--show', 
-    action='store_true',
-    help='whether to visualize the results in real-time'
-)
-parser.add_argument(
-    '-nlb', '--no-labels',
-    dest='no_labels',
-    action='store_true',
-    help='do not show labels during on top of bounding boxes'
-)
-args = parser.parse_args()
+##### Individual Job Submission
+- Navigate to the respective folder and run:
+```bash
+sbatch Train_Retina.sh
+```
 
-# Output directories.
-OUT_DIR = 'outputs/inference_outputs/images'
-LABELS_DIR = 'outputs/inference_outputs/labels'
-os.makedirs(OUT_DIR, exist_ok=True)
-os.makedirs(LABELS_DIR, exist_ok=True)
+##### Batch Job Submission
+- Use the provided batch scripts to submit jobs for all splits:
+  - Training:
+    ```bash
+    bash run_all_retinanet_models.sh
+    ```
+  - Validation:
+    ```bash
+    bash run_all_val_retinanet_models.sh
+    ```
+  - Testing:
+    ```bash
+    bash run_all_test_retinanet_models.sh
+    ```
 
-# RGB format.
-COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
-
-# Load the best model and trained weights.
-model = create_model(num_classes=NUM_CLASSES)
-checkpoint = torch.load(args.weights, map_location=DEVICE, weights_only=True)
-model.load_state_dict(checkpoint['model_state_dict'])
-model.to(DEVICE).eval()
-
-frame_count = 0  # To count total frames.
-total_fps = 0  # To get the final frames per second.
-
-def collect_all_images(dir_test):
-    """
-    Function to return a list of image paths.
-
-    :param dir_test: Directory containing images or single image path.
-
-    Returns:
-        test_images: List containing all image paths.
-    """
-    test_images = []
-    if os.path.isdir(dir_test):
-        image_file_types = ['*.jpg', '*.jpeg', '*.png', '*.ppm']
-        for file_type in image_file_types:
-            test_images.extend(glob.glob(f"{dir_test}/{file_type}"))
-    else:
-        test_images.append(dir_test)
-    return test_images
-
-def infer_transforms(image):
-    # Define the torchvision image transforms.
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.ToTensor(),
-    ])
-    return transform(image)
-
-DIR_TEST = args.input
-test_images = collect_all_images(DIR_TEST)
-print(f"Test instances: {len(test_images)}")
-for i in range(len(test_images)):
-    # Get the image file name for saving output later on.
-    image_name = test_images[i].split(os.path.sep)[-1].split('.')[0]
-    image = cv2.imread(test_images[i])
-    orig_image = image.copy()
-
-    # Save original image dimensions for normalization
-    original_height, original_width = orig_image.shape[:2]
-
-    # Resize if specified
-    if args.imgsz is not None:
-        image = cv2.resize(image, (args.imgsz, args.imgsz))
-
-    print(f"Processed image shape: {image.shape}")
-    
-    # BGR to RGB.
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # Apply transforms
-    image_input = infer_transforms(image)
-    # Add batch dimension.
-    image_input = torch.unsqueeze(image_input, 0)
-
-    # Perform inference
-    start_time = time.time()
-    with torch.no_grad():
-        outputs = model(image_input.to(DEVICE))
-    end_time = time.time()
-
-    # Get the current FPS
-    fps = 1 / (end_time - start_time)
-    total_fps += fps
-    frame_count += 1
-
-    # Load all detection to CPU for further operations
-    outputs = [{k: v.to('cpu') for k, v in t.items()} for t in outputs]
-
-    # Save predictions in YOLO format
-    labels_file = os.path.join(LABELS_DIR, f"{image_name}.txt")
-    with open(labels_file, 'w') as f:
-        if len(outputs[0]['boxes']) != 0:
-            for box, score, label in zip(outputs[0]['boxes'], outputs[0]['scores'], outputs[0]['labels']):
-                # Extract and normalize bounding box coordinates
-                x_min, y_min, x_max, y_max = box.tolist()
-                x_center = ((x_min + x_max) / 2.0) / 640# Normalize by width
-                y_center = ((y_min + y_max) / 2.0) / 640  # Normalize by height
-                width = (x_max - x_min) / 640  # Normalize width
-                height = (y_max - y_min) / 640  # Normalize height
-
-                class_id = label.item()
-                confidence = score.item()
-
-                # Write YOLO format: class_id x_center y_center width height confidence
-                f.write(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f} {confidence:.4f}\n")
-
-    # Draw the bounding boxes and write the class name on top of it.
-    if len(outputs[0]['boxes']) != 0:
-        orig_image = inference_annotations(
-            outputs, 
-            args.threshold, 
-            CLASSES, 
-            COLORS, 
-            orig_image, 
-            image,
-            args
-        )
-
-    if args.show:
-        cv2.imshow('Prediction', orig_image)
-        cv2.waitKey(1)
-    cv2.imwrite(f"{OUT_DIR}/{image_name}.jpg", orig_image)
-    print(f"Image {i+1} done... Saved labels to {labels_file}")
-    print('-'*50)
-
-print('TEST PREDICTIONS COMPLETE')
-cv2.destroyAllWindows()
-# Calculate and print the average FPS.
-avg_fps = total_fps / frame_count
-print(f"Average FPS: {avg_fps:.3f}")
+#### **Results Conversion**
+Convert RetinaNet predictions to COCO JSON format for submission:
+```bash
+python yolo_to_json.py --path /path/to/outputs --output results.json
+```
