@@ -201,7 +201,7 @@ This will apply the specified changes across all relevant files, for the base di
 ### **YOLOv11**
 Implemented using the [Ultralytics YOLOv11 pipeline](https://docs.ultralytics.com/).  
 
-#### **Configuration Example (`data.yaml`) for Faster R-CNN** for YOLOv11**
+#### **Configuration Example (`data.yaml`) for YOLOv11**
 ```yaml
 train: ../Train/images
 val: ../Valid/images
@@ -284,7 +284,7 @@ Data/Faster-RCNN/
     └── ...
 ```
 
-#### **Configuration Example (`data.yaml`) for YOLOv11 and Faster R-CNN**
+#### **Configuration Example (`data.yaml`) for Faster R-CNN**
 ```yaml
 CLASSES:
 - __background__
@@ -328,14 +328,6 @@ VALID_DIR_LABELS: /mmfs1/home/dmiller10/EE800 Research/Data/Faster-RCNN/+50k/Val
     bash resume_all.sh
     ```
 
-##### Example Configuration (`data.yaml`)
-```yaml
-train: ../Train/images
-val: ../Valid/images
-annotations: ../Train/annotations
-num_classes: 5
-save_predictions: true
-```
 
 ##### Example SLURM Script (`Train_RCNN.sh`)
 ```bash
