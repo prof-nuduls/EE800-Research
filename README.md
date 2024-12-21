@@ -241,6 +241,7 @@ python yolo_to_json.py --path /path/to/outputs --output results.json
 ```
 ---
 ### **Faster R-CNN**
+Based on the [Faster R-CNN PyTorch Training Pipeline](https://github.com/sovit-123/fasterrcnn-pytorch-training-pipeline).  
 **Changes**:
 - Changed weight loading mechanism 
 - Changed prediction file outputs
