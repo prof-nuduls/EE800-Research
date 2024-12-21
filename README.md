@@ -158,7 +158,6 @@ Data/Yolo11/
 ---
 
 ## Model Training
----
 
 ### **Mass Editing Scripts**
 
