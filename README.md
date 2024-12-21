@@ -130,9 +130,7 @@ Data/
 
 ### **1. YOLO**  
 Implemented using the [Ultralytics YOLOv11 pipeline](https://docs.ultralytics.com/).  
-**Features**:
-- Real-time object detection with high speed.  
-- Extensive support for large-scale datasets.  
+
 
 **Example Configuration (`yolov11.yaml`)**:
 ```yaml
@@ -144,10 +142,9 @@ names: ['class1', 'class2', 'class3', 'class4', 'class5']
 
 ### **2. Faster R-CNN**  
 Based on the [Faster R-CNN PyTorch Training Pipeline](https://github.com/sovit-123/fasterrcnn-pytorch-training-pipeline).  
-**Features**:
-- Region Proposal Network for high accuracy.  
-- Enhanced support for saving/reloading weights.  
-
+**Changes**:
+- Changed weight loading mechanism 
+- Changed prediction file outputs
 **Example Configuration (`faster_rcnn.yaml`)**:
 ```yaml
 train: /path/to/train/images
@@ -156,11 +153,10 @@ num_classes: 6  # 5 object classes + background
 ```
 
 ### **3. RetinaNet**  
-Utilizes the [RetinaNet Detection Pipeline](https://github.com/sovit-123/retinanet_detection_pipeline).  
-**Features**:
-- Focal loss for handling class imbalance.  
-- Multi-scale feature analysis with FPN architecture.  
-
+Based on the [RetinaNet Detection Pipeline](https://github.com/sovit-123/retinanet_detection_pipeline).  
+**Changes**:
+- Changed weight loading mechanism 
+- Changed prediction file outputs
 **Example Configuration (`retinanet.yaml`)**:
 ```yaml
 train: /path/to/train/images
